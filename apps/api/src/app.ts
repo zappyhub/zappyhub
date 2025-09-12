@@ -1,5 +1,6 @@
 import express from "express";
 import userRouter from "@/routes/userRouter";
+import ordersRouter from "./routes/ordersRouter";
 
 export const app = express();
 app.use(express.json());
@@ -9,3 +10,4 @@ app.get("/", (_req, res) => {
 });
 
 app.use("/api/users", userRouter);
+app.use("/api/orders", ordersRouter);
