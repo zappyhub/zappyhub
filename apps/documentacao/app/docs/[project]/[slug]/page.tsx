@@ -78,7 +78,7 @@ export default async function PostPage({ params }: PostPageProps) {
               </span>
             </Link>
             <div className="flex items-center gap-4">
-              <Link href={`/${projectName}`}>
+              <Link href={`/docs/${projectName}`}>
                 <Button
                   variant="outline"
                   size="sm"
