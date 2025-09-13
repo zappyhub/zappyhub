@@ -74,7 +74,7 @@ export default async function ProjectPage({ params }: ProjectPageProps) {
                 </div>
                 <CardTitle className="text-xl">
                   <Link
-                    href={`/${projectName}/${post.slug}`}
+                    href={`/docs/${projectName}/${post.slug}`}
                     className="hover:text-primary transition-colors"
                   >
                     {post.title}
