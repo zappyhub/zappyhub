@@ -152,7 +152,11 @@
   }
 
   .prose ul {
-    @apply list-disc list-inside mb-4 space-y-2;
+    @apply list-disc list-outside pl-6 mb-4 space-y-2;
+  }
+
+  .prose ol {
+    @apply list-decimal list-outside pl-6 mb-4 space-y-2;
   }
 
   .prose li {
