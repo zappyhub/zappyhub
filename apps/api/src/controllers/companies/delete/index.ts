@@ -1,4 +1,4 @@
-import {PrismaPostgresCompanyImplementation} from "@/implementations/orders/companyPrismaPostgresImpl";
+import {PrismaPostgresCompanyImplementation} from "@/implementations/companies/companyPrismaPostgresImpl";
 import {DeleteCompanyUseCase} from "@/usecases/companies/deleteCompanyUseCase";
 import {DeleteCompanyController} from "@/controllers/companies/delete/deleteCompanyController";
 

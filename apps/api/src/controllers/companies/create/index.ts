@@ -1,5 +1,5 @@
 import {CreateCompanyUseCase} from "@/usecases/companies/createCompanyUseCase";
-import {PrismaPostgresCompanyImplementation} from "@/implementations/orders/companyPrismaPostgresImpl";
+import {PrismaPostgresCompanyImplementation} from "@/implementations/companies/companyPrismaPostgresImpl";
 import {CreateCompanyController} from "@/controllers/companies/create/createCompanyController";
 
 const postgresImpl = new PrismaPostgresCompanyImplementation();

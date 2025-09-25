@@ -3,6 +3,7 @@ import {decrypt, encrypt} from "@/services/common/crypto";
 import logger from "@/services/logger/logger";
 import {PrismaClient} from "@prisma/client";
 import {Company} from "@/services/prisma";
+import {PrismaClientKnownRequestError} from "@prisma/client/runtime/library";
 
 export class PrismaPostgresCompanyImplementation implements ICompanyRepo {
     client = new PrismaClient().company;
@@ -57,7 +58,7 @@ export class PrismaPostgresCompanyImplementation implements ICompanyRepo {
         logger.info(`[COMPANY DOMAIN - PrismaPostgresCompanyImplementation]: Finding company by ID: ${id}`);
 
         try {
-            const company = await this.client.findUnique({
+            const company = await this.client.findUniqueOrThrow({
                 where: {
                     id,
                     deletedAt: null
@@ -73,6 +74,10 @@ export class PrismaPostgresCompanyImplementation implements ICompanyRepo {
 
             return this.decryptCompany(company);
         } catch (error) {
+            if (error instanceof PrismaClientKnownRequestError && error.code === 'P2025') {
+                logger.info(`[COMPANY DOMAIN - PrismaPostgresCompanyImplementation]: Company not found with id: ${id}`)
+                throw new Error("Company not found");
+            }
             logger.error(`[COMPANY DOMAIN - PrismaPostgresCompanyImplementation]: Failed to find company by ID - ${error}`);
             throw error;
         }
@@ -84,7 +89,7 @@ export class PrismaPostgresCompanyImplementation implements ICompanyRepo {
         try {
             const encryptedEmail = encrypt(email);
 
-            const company = await this.client.findUnique({
+            const company = await this.client.findUniqueOrThrow({
                 where: {
                     email: encryptedEmail,
                     deletedAt: null
@@ -100,6 +105,10 @@ export class PrismaPostgresCompanyImplementation implements ICompanyRepo {
 
             return this.decryptCompany(company);
         } catch (error) {
+            if (error instanceof PrismaClientKnownRequestError && error.code === "P2025") {
+                logger.info(`[COMPANY DOMAIN - PrismaPostgresCompanyImplementation]: Company not found with email: ${email}`);
+                throw new Error("Company not found");
+            }
             logger.error(`[COMPANY DOMAIN - PrismaPostgresCompanyImplementation]: Failed to find company by email - ${error}`);
             throw error;
         }
@@ -111,7 +120,7 @@ export class PrismaPostgresCompanyImplementation implements ICompanyRepo {
         try {
             const encryptedCellphone = encrypt(cellphoneNumber);
 
-            const company = await this.client.findUnique({
+            const company = await this.client.findUniqueOrThrow({
                 where: {
                     cellphoneNumber: encryptedCellphone,
                     deletedAt: null
@@ -127,6 +136,10 @@ export class PrismaPostgresCompanyImplementation implements ICompanyRepo {
 
             return this.decryptCompany(company);
         } catch (error) {
+            if (error instanceof PrismaClientKnownRequestError && error.code === "P2025") {
+                logger.info(`[COMPANY DOMAIN - PrismaPostgresCompanyImplementation]: Company not found with cellphone: ${cellphoneNumber}`);
+                throw new Error("Company not found");
+            }
             logger.error(`[COMPANY DOMAIN - PrismaPostgresCompanyImplementation]: Failed to find company by cellphone - ${error}`);
             throw error;
         }
@@ -136,7 +149,7 @@ export class PrismaPostgresCompanyImplementation implements ICompanyRepo {
         logger.info(`[COMPANY DOMAIN - PrismaPostgresCompanyImplementation]: Finding company by name: ${companyName}`);
 
         try {
-            const company = await this.client.findUnique({
+            const company = await this.client.findUniqueOrThrow({
                 where: {
                     companyName,
                     deletedAt: null
@@ -152,6 +165,10 @@ export class PrismaPostgresCompanyImplementation implements ICompanyRepo {
 
             return this.decryptCompany(company);
         } catch (error) {
+            if (error instanceof PrismaClientKnownRequestError && error.code === "P2025") {
+                logger.info(`[COMPANY DOMAIN - PrismaPostgresCompanyImplementation]: Company not found with name: ${companyName}`);
+                throw new Error("Company not found");
+            }
             logger.error(`[COMPANY DOMAIN - PrismaPostgresCompanyImplementation]: Failed to find company by name - ${error}`);
             throw error;
         }
@@ -161,15 +178,7 @@ export class PrismaPostgresCompanyImplementation implements ICompanyRepo {
         logger.info(`[COMPANY DOMAIN - PrismaPostgresCompanyImplementation]: Updating company with ID: ${id}`);
 
         try {
-            const updateData: any = { ...data };
-
-            if (data.email) {
-                updateData.email = encrypt(data.email);
-            }
-
-            if (data.cellphoneNumber) {
-                updateData.cellphoneNumber = encrypt(data.cellphoneNumber);
-            }
+            const updateData = { ...data };
 
             const updatedCompany = await this.client.update({
                 where: { id },
@@ -190,7 +199,7 @@ export class PrismaPostgresCompanyImplementation implements ICompanyRepo {
 
         try {
             await this.client.update({
-                where: { id },
+                where: {id},
                 data: {
                     deletedAt: new Date()
                 },

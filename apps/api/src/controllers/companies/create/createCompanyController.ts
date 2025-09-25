@@ -15,7 +15,7 @@ class CreateCompanyController {
                 return response.status(400).json({ error: "Nome da empresa é obrigatório" });
             }
 
-            const company = await this.useCase.execute(data);
+            const company = await this.useCase.handle(data);
             logger.info(`[COMPANY DOMAIN - CreateCompanyController]: Empresa criada com sucesso - ID: ${company.id}`);
 
             return response.status(201).json(company);

@@ -1,4 +1,4 @@
-import {PrismaPostgresCompanyImplementation} from "@/implementations/orders/companyPrismaPostgresImpl";
+import {PrismaPostgresCompanyImplementation} from "@/implementations/companies/companyPrismaPostgresImpl";
 import {
     GetCompanyByCompanyNameController
 } from "@/controllers/companies/getByCompanyName/getCompanyByCompanyNameController";

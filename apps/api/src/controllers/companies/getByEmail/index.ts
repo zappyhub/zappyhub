@@ -1,4 +1,4 @@
-import {PrismaPostgresCompanyImplementation} from "@/implementations/orders/companyPrismaPostgresImpl";
+import {PrismaPostgresCompanyImplementation} from "@/implementations/companies/companyPrismaPostgresImpl";
 import {GetCompanyByEmailController} from "@/controllers/companies/getByEmail/getCompanyByEmailController";
 import {FindCompanyByEmailUseCase} from "@/usecases/companies/findCompanyByEmailUseCase";
 

@@ -5,7 +5,7 @@ export class CreateCompanyUseCase {
     constructor(private companyRepo: ICompanyRepo) {
     }
 
-    async execute(data: CompanyCreateData): Promise<Company> {
+    async handle(data: CompanyCreateData): Promise<Company> {
         if (!data.companyName || data.companyName.trim() === '') {
             throw new Error('Nome da empresa é obrigatório');
         }
