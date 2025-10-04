@@ -52,10 +52,9 @@ enum OrderStatus {
 }
 
 model Orders {
-  id String @id @default(uuid())
-
-  // clientId String | Esperando o modelo de users
-
+  id            String       @id @default(uuid())
+  clientId      String
+  client        User        @relation(fields: [clientId], references: [id])
   customerName  String
   customerPhone String
   items         OrderItems[]
@@ -65,3 +64,26 @@ model Orders {
   updatedAt     DateTime     @default(now())
   deletedAt     DateTime?
 }
+
+model User {
+  id              String   @id @default(uuid())
+  name            String
+  userName        String   @unique
+  email           String   @unique
+  cellphoneNumber String   @unique
+  passwordHash    String
+  role            Role     @default(USER)
+  active          Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  deletedAt       DateTime?
+
+  // relação com Orders
+  orders Orders[]
+}
+
+enum Role {
+  ADMIN
+  USER
+}
+
