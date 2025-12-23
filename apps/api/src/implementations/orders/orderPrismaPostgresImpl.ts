@@ -1,6 +1,6 @@
 import IOrderRepo, { type OrderWithItems } from "@/interfaces/IOrdersRepo";
-import { OrderItems, Orders, PrismaClient } from "@/services/prisma";
-import { PrismaClientKnownRequestError } from "@/services/prisma/runtime/library";
+import { OrderItems, PrismaClient } from "@/services/prisma";
+import { isPrismaKnownRequestError } from "@/utils/prisma";
 
 class OrderPrismaPostgresImplementation implements IOrderRepo {
   client = new PrismaClient();
@@ -55,9 +55,8 @@ class OrderPrismaPostgresImplementation implements IOrderRepo {
       });
 
       return order;
-    } catch (error) {
-      const prismaErro = error as PrismaClientKnownRequestError;
-      if (prismaErro.code === "P2025") {
+    } catch (error: unknown) {
+      if (isPrismaKnownRequestError(error) && error.code === "P2025") {
         console.log("Order not found");
         return undefined;
       }
