@@ -111,7 +111,7 @@ export class PrismaPostgresCompanyImplementation implements ICompanyRepo {
         error
       );
 
-      throw error;
+      throw error as Error;
     }
   }
 
@@ -311,7 +311,7 @@ export class PrismaPostgresCompanyImplementation implements ICompanyRepo {
       logger.error(
         `[COMPANY DOMAIN - PrismaPostgresCompanyImplementation]: Failed to check company existence - ${error}`
       );
-      throw error;
+      throw error as Error;
     }
   }
 
