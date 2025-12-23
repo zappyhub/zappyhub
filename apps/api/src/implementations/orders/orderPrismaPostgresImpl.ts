@@ -1,9 +1,10 @@
 import IOrderRepo, { type OrderWithItems } from "@/interfaces/IOrdersRepo";
-import { OrderItems, PrismaClient } from "@/services/prisma";
+import { OrderItems } from "@/services/prisma";
+import { prisma } from "@/infra/prisma";
 import { isPrismaKnownRequestError } from "@/utils/prisma";
 
 class OrderPrismaPostgresImplementation implements IOrderRepo {
-  client = new PrismaClient();
+  client = prisma;
 
   async createOrder(data: OrderWithItems): Promise<void> {
     const { customerName, customerPhone, items, status, totalAmount } = data;

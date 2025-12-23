@@ -1,12 +1,12 @@
 import type { Orders, Prisma } from "@/services/prisma";
-import { PrismaClient } from "@prisma/client";
+import { prisma } from "@/infra/prisma";
 
 export type OrderWithItems = Prisma.OrdersGetPayload<{
   include: { items: true };
 }>;
 
 interface IOrderRepo {
-  client: typeof PrismaClient;
+  client: typeof prisma;
   createOrder(data: OrderWithItems): Promise<void>;
   getAllOrders(): Promise<OrderWithItems[]>;
   getOrderById(id: string): Promise<OrderWithItems | undefined>;
