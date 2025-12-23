@@ -34,6 +34,8 @@ model Company {
   createdAt            DateTime  @default(now())
   updatedAt            DateTime  @updatedAt
   deletedAt            DateTime?
+  user                 User?     @relation(fields: [userId], references: [id])
+  userId               String?
 
   @@index([email])
   @@index([cellphoneNumber])
@@ -50,11 +52,30 @@ enum OrderStatus {
   CANCELLED
 }
 
+model User {
+  id                      String    @id @default(uuid())
+  userName                String    @unique
+  email                   String?   @unique
+  cellphoneNumber         String?   @unique
+  active                  Boolean   @default(true)
+  emailVerified           Boolean   @default(false)
+  cellphoneNumberVerified Boolean   @default(false)
+  createdAt               DateTime  @default(now())
+  updatedAt               DateTime  @default(now())
+  deletedAt               DateTime?
+  passwordHash            String
+
+  companiesOwned Company[]
+  orders         Orders[]
+
+  @@index([email])
+  @@index([cellphoneNumber])
+  @@index([userName])
+  @@index([active])
+}
+
 model Orders {
-  id String @id @default(uuid())
-
-  // clientId String | Esperando o modelo de users
-
+  id            String       @id @default(uuid())
   customerName  String
   customerPhone String
   items         OrderItems[]
@@ -63,4 +84,6 @@ model Orders {
   createdAt     DateTime     @default(now())
   updatedAt     DateTime     @default(now())
   deletedAt     DateTime?
+  user          User?        @relation(fields: [userId], references: [id])
+  userId        String?
 }

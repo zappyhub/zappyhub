@@ -4,13 +4,11 @@ import { prisma } from "@/infra/prisma";
 import { isPrismaKnownRequestError } from "@/utils/prisma";
 
 class OrderPrismaPostgresImplementation implements IOrderRepo {
-  client = prisma;
-
   async createOrder(data: OrderWithItems): Promise<void> {
     const { customerName, customerPhone, items, status, totalAmount } = data;
 
     try {
-      await this.client.orders.create({
+      await prisma.orders.create({
         data: {
           customerName,
           customerPhone,
@@ -32,7 +30,7 @@ class OrderPrismaPostgresImplementation implements IOrderRepo {
   }
 
   async getAllOrders(): Promise<OrderWithItems[]> {
-    return await this.client.orders.findMany({
+    return await prisma.orders.findMany({
       where: {
         deletedAt: {
           equals: null,
@@ -46,7 +44,7 @@ class OrderPrismaPostgresImplementation implements IOrderRepo {
 
   async getOrderById(id: string): Promise<OrderWithItems | undefined> {
     try {
-      const order = await this.client.orders.findUniqueOrThrow({
+      const order = await prisma.orders.findUniqueOrThrow({
         where: {
           id,
         },
