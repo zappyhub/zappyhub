@@ -7,7 +7,6 @@ import { decrypt, encrypt } from "@/services/common/crypto";
 import logger from "@/services/logger/logger";
 import { PrismaClient } from "@/services/prisma";
 import { Company } from "@/services/prisma";
-import { PrismaClientKnownRequestError } from "@/services/prisma/runtime/client";
 import { isPrismaKnownRequestError } from "@/utils/prisma";
 
 export class PrismaPostgresCompanyImplementation implements ICompanyRepo {
