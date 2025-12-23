@@ -9,6 +9,7 @@ import { User } from "@/services/prisma";
 import * as bcrypt from "bcrypt";
 import { decrypt, encrypt } from "@/services/common/crypto";
 import { isPrismaKnownRequestError } from "@/utils/prisma";
+import logger from "@/services/logger/logger";
 
 /*
 Falta:
@@ -23,6 +24,12 @@ export class UserPrismaPostgresImpl implements IUsersRepo {
   client = prisma.user;
 
   async create(payload: CreateUserPayload): Promise<Pick<User, "id"> | null> {
+    logger.info(
+      `[USER DOMAIN -  usersPrismaPostgresImpl]: Server issued to create a new user`
+    );
+    logger.info(
+      `[USER DOMAIN -  usersPrismaPostgresImpl]: Data received: ${payload}`
+    );
     try {
       const userId = await this.client.create({
         data: {
@@ -37,14 +44,22 @@ export class UserPrismaPostgresImpl implements IUsersRepo {
           id: true,
         },
       });
-
+      logger.info(
+        `[USER DOMAIN -  usersPrismaPostgresImpl]: Successfully created a new user!`
+      );
       return userId;
     } catch (error) {
+      logger.error(
+        `[USER DOMAIN -  usersPrismaPostgresImpl]: Something went wrong. User not created`
+      );
       return null;
     }
   }
   //Later: Pagination
   async getAll(): Promise<User[]> {
+    logger.info(
+      `[USER DOMAIN -  usersPrismaPostgresImpl]: Server issued to get all users, sending it`
+    );
     const users = await this.client.findMany({
       where: {
         deletedAt: null,
@@ -58,6 +73,9 @@ export class UserPrismaPostgresImpl implements IUsersRepo {
   }
 
   async exists(id: string): Promise<Boolean> {
+    logger.info(
+      `[USER DOMAIN -  usersPrismaPostgresImpl]: Server issued to verify user existence in DB, sending it`
+    );
     return (await this.client.findFirst({
       where: {
         id,
@@ -68,6 +86,10 @@ export class UserPrismaPostgresImpl implements IUsersRepo {
   }
 
   async getUserById(id: string): Promise<UserReturn | null> {
+    logger.info(
+      `[USER DOMAIN -  usersPrismaPostgresImpl]: Server issued to get user by id`
+    );
+    logger.info(`[USER DOMAIN -  usersPrismaPostgresImpl]: id received: ${id}`);
     try {
       const user = await this.client.findUniqueOrThrow({
         where: {
@@ -93,11 +115,16 @@ export class UserPrismaPostgresImpl implements IUsersRepo {
           passwordHash: true,
         },
       });
+      logger.info(
+        `[USER DOMAIN -  usersPrismaPostgresImpl]: User found! Decrypting and sending it`
+      );
       return this.decryptUser(user) as UserReturn;
     } catch (error) {
       if (isPrismaKnownRequestError(error) && error.code === "P2025") {
       }
-
+      logger.error(
+        `[USER DOMAIN -  usersPrismaPostgresImpl]: Somenthing went wrong!`
+      );
       return null;
     }
   }
@@ -105,6 +132,12 @@ export class UserPrismaPostgresImpl implements IUsersRepo {
   async getUserByCellphoneNumber(
     cellphoneNumber: string
   ): Promise<UserReturn | null> {
+    logger.info(
+      `[USER DOMAIN -  usersPrismaPostgresImpl]: Server issued to get user by cellphone number`
+    );
+    logger.info(
+      `[USER DOMAIN -  usersPrismaPostgresImpl]: cellphone number received: ${cellphoneNumber}`
+    );
     try {
       const user = await this.client.findUniqueOrThrow({
         where: {
@@ -130,16 +163,29 @@ export class UserPrismaPostgresImpl implements IUsersRepo {
           passwordHash: true,
         },
       });
+      logger.info(
+        `[USER DOMAIN -  usersPrismaPostgresImpl]: User found! Decrypting and sending it`
+      );
+
       return this.decryptUser(user) as UserReturn;
     } catch (error) {
       if (isPrismaKnownRequestError(error) && error.code === "P2025") {
       }
+      logger.error(
+        `[USER DOMAIN -  usersPrismaPostgresImpl]: Somenthing went wrong!`
+      );
 
       return null;
     }
   }
 
   async getUserByEmail(email: string): Promise<UserReturn | null> {
+    logger.info(
+      `[USER DOMAIN -  usersPrismaPostgresImpl]: Server issued to get user by cellphone email`
+    );
+    logger.info(
+      `[USER DOMAIN -  usersPrismaPostgresImpl]: cellphone number received: ${email}`
+    );
     try {
       const user = await this.client.findUniqueOrThrow({
         where: {
@@ -165,16 +211,29 @@ export class UserPrismaPostgresImpl implements IUsersRepo {
           passwordHash: true,
         },
       });
+      logger.info(
+        `[USER DOMAIN -  usersPrismaPostgresImpl]: User found! Decrypting and sending it`
+      );
+
       return this.decryptUser(user) as UserReturn;
     } catch (error) {
       if (isPrismaKnownRequestError(error) && error.code === "P2025") {
       }
+      logger.error(
+        `[USER DOMAIN -  usersPrismaPostgresImpl]: Somenthing went wrong!`
+      );
 
       return null;
     }
   }
 
   async softDeleteUser(id: string): Promise<Pick<User, "id">> {
+    logger.info(
+      `[USER DOMAIN -  usersPrismaPostgresImpl]: Server issued to soft delete user`
+    );
+    logger.info(
+      `[USER DOMAIN -  usersPrismaPostgresImpl]: User id received: ${id}`
+    );
     const softDeletedUser = await this.client.update({
       where: {
         id,
@@ -184,10 +243,18 @@ export class UserPrismaPostgresImpl implements IUsersRepo {
       },
     });
 
+    logger.info(`[USER DOMAIN -  usersPrismaPostgresImpl]: User soft deleted!`);
+
     return softDeletedUser;
   }
 
   async hardDeleteUser(id: string): Promise<Pick<User, "id">> {
+    logger.info(
+      `[USER DOMAIN -  usersPrismaPostgresImpl]: Server issued to hard delete user`
+    );
+    logger.info(
+      `[USER DOMAIN -  usersPrismaPostgresImpl]: User id received: ${id}`
+    );
     const deletedUser = await this.client.delete({
       where: {
         id,
@@ -196,11 +263,20 @@ export class UserPrismaPostgresImpl implements IUsersRepo {
         id: true,
       },
     });
+    logger.info(`[USER DOMAIN -  usersPrismaPostgresImpl]: User hard deleted!`);
 
     return deletedUser;
   }
-  //Lidar com a criptografia dessa função
+  //Lidar com a criptografia dessa função e hahs do psw
   async updateUser(id: string, payload: UserUpdateData): Promise<UserReturn> {
+    logger.info(
+      `[USER DOMAIN -  usersPrismaPostgresImpl]: Server issued to update user`
+    );
+    logger.info(`[USER DOMAIN -  usersPrismaPostgresImpl]: User ID: ${id}`);
+    logger.info(
+      `[USER DOMAIN -  usersPrismaPostgresImpl]: Payload: ${payload}`
+    );
+
     try {
       const updatedUser = await this.client.update({
         where: {
@@ -210,9 +286,14 @@ export class UserPrismaPostgresImpl implements IUsersRepo {
           ...payload,
         },
       });
-
+      logger.info(
+        `[USER DOMAIN -  usersPrismaPostgresImpl]: User updated! Sending it!`
+      );
       return updatedUser as unknown as UserReturn;
     } catch (error) {
+      logger.error(
+        `[USER DOMAIN -  usersPrismaPostgresImpl]: Something went wrong!`
+      );
       throw error;
     }
   }
