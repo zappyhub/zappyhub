@@ -67,6 +67,7 @@ model User {
 
   companiesOwned Company[]
   orders         Orders[]
+  refreshTokens  RefreshToken[]
 
   @@index([email])
   @@index([cellphoneNumber])
@@ -86,4 +87,17 @@ model Orders {
   deletedAt     DateTime?
   user          User?        @relation(fields: [userId], references: [id])
   userId        String?
+}
+
+model RefreshToken {
+  id        String   @id @default(uuid())
+  userId    String
+  tokenHash String   @unique
+  expiresAt DateTime
+  revoked   Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  User User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
 }
