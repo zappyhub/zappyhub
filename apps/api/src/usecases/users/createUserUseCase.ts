@@ -1,7 +1,7 @@
 import { CreateUserPayload, IUsersRepo } from "@/interfaces/IUsersRepo";
 import logger from "@/services/logger/logger";
 
-class createUserUseCase {
+class CreateUserUseCase {
   constructor(private createUserUseCaseRepo: IUsersRepo) {}
 
   async handle(payload: CreateUserPayload) {
@@ -10,4 +10,4 @@ class createUserUseCase {
   }
 }
 
-export { createUserUseCase };
+export { CreateUserUseCase };

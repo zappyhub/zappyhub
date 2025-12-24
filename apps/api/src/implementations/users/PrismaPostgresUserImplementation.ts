@@ -20,7 +20,7 @@ Falta:
 
 */
 
-export class UserPrismaPostgresImpl implements IUsersRepo {
+export class PrismaPostgresUserImplementation implements IUsersRepo {
   client = prisma.user;
 
   async create(payload: CreateUserPayload): Promise<Pick<User, "id"> | null> {
