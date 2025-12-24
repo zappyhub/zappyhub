@@ -1,4 +1,4 @@
-import type { Prisma } from "@/services/prisma";
+import type { Prisma } from "@/services/prisma/client";
 
 export type OrderWithItems = Prisma.OrdersGetPayload<{
   include: { items: true };

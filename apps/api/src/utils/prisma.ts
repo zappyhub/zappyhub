@@ -1,4 +1,4 @@
-import { Prisma } from "@/services/prisma";
+import { Prisma } from "@/services/prisma/client";
 
 export function isPrismaKnownRequestError(
   error: unknown
