@@ -1,8 +1,8 @@
 import { Request, Response } from "express";
-import { createUserUseCase } from "@/usecases/users/createUserUseCase";
+import { CreateUserUseCase } from "@/usecases/users/createUserUseCase";
 
-class createUserController {
-  constructor(private useCase: createUserUseCase) {}
+class CreateUserController {
+  constructor(private useCase: CreateUserUseCase) {}
 
   async run(request: Request, response: Response) {
     const payload = request.body;
@@ -17,4 +17,4 @@ class createUserController {
   }
 }
 
-export { createUserController };
+export { CreateUserController };
