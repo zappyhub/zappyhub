@@ -1,5 +1,5 @@
 import IOrderRepo, { type OrderWithItems } from "@/interfaces/IOrdersRepo";
-import { OrderItems } from "@/services/prisma";
+import { OrderItems } from "@/services/prisma/client";
 import { prisma } from "@/infra/prisma";
 import { isPrismaKnownRequestError } from "@/utils/prisma";
 

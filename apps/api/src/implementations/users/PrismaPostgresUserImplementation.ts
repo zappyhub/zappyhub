@@ -5,7 +5,7 @@ import {
   UserUpdateData,
 } from "@/interfaces/IUsersRepo";
 import { prisma } from "@/infra/prisma";
-import { User } from "@/services/prisma";
+import { User } from "@/services/prisma/client";
 import * as bcrypt from "bcrypt";
 import { decrypt, encrypt } from "@/services/common/crypto";
 import { isPrismaKnownRequestError } from "@/utils/prisma";

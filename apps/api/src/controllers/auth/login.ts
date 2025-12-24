@@ -19,20 +19,20 @@ export default async function loginController(
   res: Response,
   next: NextFunction
 ) {
-  const { nome, senha } = req.body;
+  const { userName, password } = req.body;
 
   logger.info(
-    `[Auth Controller - Login] - Server issued to login user ${nome}`
+    `[Auth Controller - Login] - Server issued to login user ${userName}`
   );
 
   try {
     const user = await prisma.user.findUniqueOrThrow({
-      where: { userName: nome },
+      where: { userName: userName },
     });
 
     logger.info(`[Auth Controller - Login] - Comparing hashes`);
 
-    const passwordMatch = bcrypt.compareSync(senha, user.passwordHash);
+    const passwordMatch = bcrypt.compareSync(password, user.passwordHash);
 
     if (!passwordMatch) {
       logger.warn(

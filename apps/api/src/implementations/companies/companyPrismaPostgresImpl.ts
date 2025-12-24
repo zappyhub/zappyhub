@@ -5,12 +5,12 @@ import {
 } from "@/interfaces/ICompanyRepo";
 import { decrypt, encrypt } from "@/services/common/crypto";
 import logger from "@/services/logger/logger";
-import { PrismaClient } from "@/services/prisma";
-import { Company } from "@/services/prisma";
+import { prisma } from "@/infra/prisma";
+import { Company } from "@/services/prisma/client";
 import { isPrismaKnownRequestError } from "@/utils/prisma";
 
 export class PrismaPostgresCompanyImplementation implements ICompanyRepo {
-  client = new PrismaClient().company;
+  client = prisma.company;
 
   async create(data: CompanyCreateData): Promise<Company> {
     logger.info(

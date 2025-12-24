@@ -1,4 +1,4 @@
-import { User, Prisma } from "@/services/prisma";
+import { User, Prisma } from "@/services/prisma/client";
 
 export type UserReturn = Prisma.UserGetPayload<{
   include: {
