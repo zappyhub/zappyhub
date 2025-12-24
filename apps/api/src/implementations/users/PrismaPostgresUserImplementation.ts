@@ -5,7 +5,7 @@ import {
   UserUpdateData,
 } from "@/interfaces/IUsersRepo";
 import { prisma } from "@/infra/prisma";
-import { User } from "@/services/prisma";
+import { User } from "@/services/prisma/client";
 import * as bcrypt from "bcrypt";
 import { decrypt, encrypt } from "@/services/common/crypto";
 import { isPrismaKnownRequestError } from "@/utils/prisma";
@@ -13,11 +13,7 @@ import logger from "@/services/logger/logger";
 
 /*
 Falta:
-
- - LOGS
  - Paginação
- - Errors
-
 */
 
 export class PrismaPostgresUserImplementation implements IUsersRepo {
@@ -51,6 +47,9 @@ export class PrismaPostgresUserImplementation implements IUsersRepo {
     } catch (error) {
       logger.error(
         `[USER DOMAIN -  usersPrismaPostgresImpl]: Something went wrong. User not created`
+      );
+      logger.error(
+        `[USER DOMAIN -  PrismaPostgresUserImplementation]: ${error}`
       );
       return null;
     }
@@ -121,9 +120,17 @@ export class PrismaPostgresUserImplementation implements IUsersRepo {
       return this.decryptUser(user) as UserReturn;
     } catch (error) {
       if (isPrismaKnownRequestError(error) && error.code === "P2025") {
+        logger.warn(
+          `[USER DOMAIN -  PrismaPostgresUserImplementation]: User not found!`
+        );
+        throw new Error("User not found!");
       }
+
       logger.error(
-        `[USER DOMAIN -  usersPrismaPostgresImpl]: Somenthing went wrong!`
+        `[USER DOMAIN -  usersPrismaPostgresImpl]: Somenthing went wrong! Unhandled Error happend!`
+      );
+      logger.error(
+        `[USER DOMAIN -  PrismaPostgresUserImplementation]: ${error}`
       );
       return null;
     }
@@ -170,11 +177,18 @@ export class PrismaPostgresUserImplementation implements IUsersRepo {
       return this.decryptUser(user) as UserReturn;
     } catch (error) {
       if (isPrismaKnownRequestError(error) && error.code === "P2025") {
+        logger.warn(
+          `[USER DOMAIN -  PrismaPostgresUserImplementation]: User not found!`
+        );
+        throw new Error("User not found!");
       }
-      logger.error(
-        `[USER DOMAIN -  usersPrismaPostgresImpl]: Somenthing went wrong!`
-      );
 
+      logger.error(
+        `[USER DOMAIN -  usersPrismaPostgresImpl]: Somenthing went wrong! Unhandled Error happend!`
+      );
+      logger.error(
+        `[USER DOMAIN -  PrismaPostgresUserImplementation]: ${error}`
+      );
       return null;
     }
   }
@@ -218,11 +232,18 @@ export class PrismaPostgresUserImplementation implements IUsersRepo {
       return this.decryptUser(user) as UserReturn;
     } catch (error) {
       if (isPrismaKnownRequestError(error) && error.code === "P2025") {
+        logger.warn(
+          `[USER DOMAIN -  PrismaPostgresUserImplementation]: User not found!`
+        );
+        throw new Error("User not found!");
       }
-      logger.error(
-        `[USER DOMAIN -  usersPrismaPostgresImpl]: Somenthing went wrong!`
-      );
 
+      logger.error(
+        `[USER DOMAIN -  usersPrismaPostgresImpl]: Somenthing went wrong! Unhandled Error happend!`
+      );
+      logger.error(
+        `[USER DOMAIN -  PrismaPostgresUserImplementation]: ${error}`
+      );
       return null;
     }
   }
@@ -234,18 +255,31 @@ export class PrismaPostgresUserImplementation implements IUsersRepo {
     logger.info(
       `[USER DOMAIN -  usersPrismaPostgresImpl]: User id received: ${id}`
     );
-    const softDeletedUser = await this.client.update({
-      where: {
-        id,
-      },
-      data: {
-        deletedAt: new Date(),
-      },
-    });
 
-    logger.info(`[USER DOMAIN -  usersPrismaPostgresImpl]: User soft deleted!`);
+    try {
+      const softDeletedUser = await this.client.update({
+        where: {
+          id,
+        },
+        data: {
+          deletedAt: new Date(),
+        },
+      });
 
-    return softDeletedUser;
+      logger.info(
+        `[USER DOMAIN -  usersPrismaPostgresImpl]: User soft deleted!`
+      );
+
+      return softDeletedUser;
+    } catch (error) {
+      logger.error(
+        `[USER DOMAIN -  usersPrismaPostgresImpl]: Something went wrong. User not created`
+      );
+      logger.error(
+        `[USER DOMAIN -  PrismaPostgresUserImplementation]: ${error}`
+      );
+      throw error;
+    }
   }
 
   async hardDeleteUser(id: string): Promise<Pick<User, "id">> {
@@ -255,17 +289,30 @@ export class PrismaPostgresUserImplementation implements IUsersRepo {
     logger.info(
       `[USER DOMAIN -  usersPrismaPostgresImpl]: User id received: ${id}`
     );
-    const deletedUser = await this.client.delete({
-      where: {
-        id,
-      },
-      select: {
-        id: true,
-      },
-    });
-    logger.info(`[USER DOMAIN -  usersPrismaPostgresImpl]: User hard deleted!`);
 
-    return deletedUser;
+    try {
+      const deletedUser = await this.client.delete({
+        where: {
+          id,
+        },
+        select: {
+          id: true,
+        },
+      });
+      logger.info(
+        `[USER DOMAIN -  usersPrismaPostgresImpl]: User hard deleted!`
+      );
+
+      return deletedUser;
+    } catch (error) {
+      logger.error(
+        `[USER DOMAIN -  usersPrismaPostgresImpl]: Something went wrong. User not created`
+      );
+      logger.error(
+        `[USER DOMAIN -  PrismaPostgresUserImplementation]: ${error}`
+      );
+      throw error;
+    }
   }
   //Lidar com a criptografia dessa função e hahs do psw
   async updateUser(id: string, payload: UserUpdateData): Promise<UserReturn> {
@@ -278,21 +325,46 @@ export class PrismaPostgresUserImplementation implements IUsersRepo {
     );
 
     try {
+      const userExists = await this.client.findUniqueOrThrow({
+        where: {
+          id,
+        },
+      });
+
       const updatedUser = await this.client.update({
         where: {
           id,
         },
         data: {
           ...payload,
+          passwordHash: payload.passwordHash
+            ? bcrypt.hashSync(payload.passwordHash, 12)
+            : userExists.passwordHash,
+          email: payload.email ? encrypt(payload.email) : userExists.email,
+          cellphoneNumber: payload.cellphoneNumber
+            ? encrypt(payload.cellphoneNumber)
+            : userExists.cellphoneNumber,
         },
       });
+
       logger.info(
         `[USER DOMAIN -  usersPrismaPostgresImpl]: User updated! Sending it!`
       );
-      return updatedUser as unknown as UserReturn;
+
+      return this.decryptUser(updatedUser) as unknown as UserReturn;
     } catch (error) {
+      if (isPrismaKnownRequestError(error) && error.code === "P2025") {
+        logger.warn(
+          `[USER DOMAIN -  PrismaPostgresUserImplementation]: User not found!`
+        );
+        throw new Error("User not found!");
+      }
+
       logger.error(
-        `[USER DOMAIN -  usersPrismaPostgresImpl]: Something went wrong!`
+        `[USER DOMAIN -  usersPrismaPostgresImpl]: Somenthing went wrong! Unhandled Error happend!`
+      );
+      logger.error(
+        `[USER DOMAIN -  PrismaPostgresUserImplementation]: ${error}`
       );
       throw error;
     }
