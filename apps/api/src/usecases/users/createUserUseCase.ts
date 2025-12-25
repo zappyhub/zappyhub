@@ -5,8 +5,8 @@ class CreateUserUseCase {
   constructor(private createUserUseCaseRepo: IUsersRepo) {}
 
   async handle(payload: CreateUserPayload) {
-    logger.info(`[USER CASE -  createUserUseCase]: Use case run!`);
-    return await this.createUserUseCaseRepo.create(payload);
+    logger.info(`[USER USE CASE -  createUserUseCase]: Use case run!`);
+    await this.createUserUseCaseRepo.create(payload);
   }
 }
 

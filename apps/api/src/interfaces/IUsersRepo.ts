@@ -36,11 +36,11 @@ export type UserUpdateData = Partial<
 export interface IUsersRepo {
   create(payload: CreateUserPayload): Promise<Pick<User, "id"> | null>;
   getAll(): Promise<User[]>;
+  exists(id: string): Promise<Boolean>;
   getUserById(id: string): Promise<UserReturn | null>;
   getUserByEmail(email: string): Promise<UserReturn | null>;
   getUserByCellphoneNumber(cellphoneNumber: string): Promise<UserReturn | null>;
   softDeleteUser(id: string): Promise<Pick<User, "id">>;
   hardDeleteUser(id: string): Promise<Pick<User, "id">>;
   updateUser(id: string, payload: UserUpdateData): Promise<UserReturn>;
-  exists(id: string): Promise<Boolean>;
 }

@@ -107,8 +107,7 @@ export class PrismaPostgresCompanyImplementation implements ICompanyRepo {
         }
       }
       logger.error(
-        `[COMPANY DOMAIN - PrismaPostgresCompanyImplementation]: Failed to find company by ID`,
-        error
+        `[COMPANY DOMAIN - PrismaPostgresCompanyImplementation]: Failed to find company by ID ${error}`
       );
 
       throw error as Error;
