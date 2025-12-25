@@ -6,7 +6,7 @@ class CreateUserUseCase {
 
   async handle(payload: CreateUserPayload) {
     logger.info(`[USER USE CASE -  createUserUseCase]: Use case run!`);
-    await this.createUserUseCaseRepo.create(payload);
+    return await this.createUserUseCaseRepo.create(payload);
   }
 }
 
