@@ -35,7 +35,7 @@ const userScope = {
 
 export class PrismaPostgresUserImplementation implements IUsersRepo {
   private client = prisma.user;
-  private readonly LOG_CONTEXT = "[UserRepo]";
+  private readonly LOG_CONTEXT = "[User Postgres Implementation]";
 
   async create(payload: CreateUserPayload): Promise<Pick<User, "id"> | null> {
     logger.info(`${this.LOG_CONTEXT} Creating new user.`);
@@ -58,6 +58,12 @@ export class PrismaPostgresUserImplementation implements IUsersRepo {
       );
       return user;
     } catch (error) {
+      if (isPrismaKnownRequestError(error) && error.code === "P2002") {
+        logger.warn(
+          `${this.LOG_CONTEXT} Create failed: Unique constraint violation.`
+        );
+        throw error;
+      }
       logger.error(
         `${this.LOG_CONTEXT} Create failed: ${(error as Error).message}`
       );
@@ -171,8 +177,16 @@ export class PrismaPostgresUserImplementation implements IUsersRepo {
 
       return this.mapToDomain(updatedUser);
     } catch (error) {
+      if (isPrismaKnownRequestError(error) && error.code === "P2002") {
+        logger.warn(
+          `${this.LOG_CONTEXT} Update failed: Unique constraint violation.`
+        );
+        throw error;
+      }
+
       if (isPrismaKnownRequestError(error) && error.code === "P2025") {
-        throw new Error("User not found!");
+        logger.warn(`${this.LOG_CONTEXT} Update failed: User not found.`);
+        throw error;
       }
       throw error;
     }
