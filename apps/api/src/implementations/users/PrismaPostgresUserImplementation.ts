@@ -5,29 +5,43 @@ import {
   UserUpdateData,
 } from "@/interfaces/IUsersRepo";
 import { prisma } from "@/infra/prisma";
-import { User } from "@/services/prisma/client";
+import { Prisma, User } from "@/services/prisma/client";
 import * as bcrypt from "bcrypt";
 import { decrypt, encrypt } from "@/services/common/crypto";
 import { isPrismaKnownRequestError } from "@/utils/prisma";
 import logger from "@/services/logger/logger";
 
-/*
-Falta:
- - Paginação
-*/
+const userScope = {
+  include: {
+    companiesOwned: {
+      select: {
+        companyName: true,
+        id: true,
+      },
+    },
+    orders: {
+      select: {
+        id: true,
+      },
+    },
+  },
+  omit: {
+    createdAt: true,
+    deletedAt: true,
+    updatedAt: true,
+    passwordHash: true,
+  },
+} satisfies Prisma.UserFindManyArgs;
 
 export class PrismaPostgresUserImplementation implements IUsersRepo {
-  client = prisma.user;
+  private client = prisma.user;
+  private readonly LOG_CONTEXT = "[UserRepo]";
 
   async create(payload: CreateUserPayload): Promise<Pick<User, "id"> | null> {
-    logger.info(
-      `[USER DOMAIN -  usersPrismaPostgresImpl]: Server issued to create a new user`
-    );
-    logger.info(
-      `[USER DOMAIN -  usersPrismaPostgresImpl]: Data received: ${payload}`
-    );
+    logger.info(`${this.LOG_CONTEXT} Creating new user.`);
+
     try {
-      const userId = await this.client.create({
+      const user = await this.client.create({
         data: {
           userName: payload.userName,
           email: payload.email ? encrypt(payload.email) : null,
@@ -36,341 +50,136 @@ export class PrismaPostgresUserImplementation implements IUsersRepo {
             : null,
           passwordHash: bcrypt.hashSync(payload.password, 12),
         },
-        select: {
-          id: true,
-        },
+        select: { id: true },
       });
+
       logger.info(
-        `[USER DOMAIN -  usersPrismaPostgresImpl]: Successfully created a new user!`
+        `${this.LOG_CONTEXT} User created successfully (ID: ${user.id}).`
       );
-      return userId;
+      return user;
     } catch (error) {
       logger.error(
-        `[USER DOMAIN -  usersPrismaPostgresImpl]: Something went wrong. User not created`
+        `${this.LOG_CONTEXT} Create failed: ${(error as Error).message}`
       );
-      logger.error(
-        `[USER DOMAIN -  PrismaPostgresUserImplementation]: ${error}`
-      );
-      return null;
+      throw error;
     }
   }
-  //Later: Pagination
-  async getAll(): Promise<User[]> {
-    logger.info(
-      `[USER DOMAIN -  usersPrismaPostgresImpl]: Server issued to get all users, sending it`
-    );
+
+  async getAll({ cursor, limit = 10 }: { cursor?: string; limit?: number }) {
     const users = await this.client.findMany({
-      where: {
-        deletedAt: null,
-      },
-      orderBy: {
-        createdAt: "asc",
-      },
+      where: { deletedAt: null },
+      ...userScope,
+      orderBy: { createdAt: "asc" },
+      take: limit + 1,
+      ...(cursor && { cursor: { id: cursor }, skip: 1 }),
     });
 
-    return users.map((user) => this.decryptUser(user)) as User[];
+    const hasNextPage = users.length > limit;
+    const items = hasNextPage ? users.slice(0, -1) : users;
+
+    const decryptedUsers = items.map((u) => this.mapToDomain(u));
+
+    return {
+      data: decryptedUsers,
+      nextCursor: hasNextPage
+        ? decryptedUsers[decryptedUsers.length - 1].id
+        : null,
+    };
   }
 
-  async exists(id: string): Promise<Boolean> {
-    logger.info(
-      `[USER DOMAIN -  usersPrismaPostgresImpl]: Server issued to verify user existence in DB, sending it`
-    );
-    return (await this.client.findFirst({
-      where: {
-        id,
-      },
-    }))
-      ? true
-      : false;
+  async exists(id: string): Promise<boolean> {
+    const count = await this.client.count({ where: { id } });
+    return count > 0;
   }
 
   async getUserById(id: string): Promise<UserReturn | null> {
-    logger.info(
-      `[USER DOMAIN -  usersPrismaPostgresImpl]: Server issued to get user by id`
-    );
-    logger.info(`[USER DOMAIN -  usersPrismaPostgresImpl]: id received: ${id}`);
-    try {
-      const user = await this.client.findUniqueOrThrow({
-        where: {
-          id,
-        },
-        include: {
-          companiesOwned: {
-            select: {
-              id: true,
-              companyName: true,
-            },
-          },
-          orders: {
-            select: {
-              id: true,
-            },
-          },
-        },
-        omit: {
-          createdAt: true,
-          deletedAt: true,
-          updatedAt: true,
-          passwordHash: true,
-        },
-      });
-      logger.info(
-        `[USER DOMAIN -  usersPrismaPostgresImpl]: User found! Decrypting and sending it`
-      );
-      return this.decryptUser(user) as UserReturn;
-    } catch (error) {
-      if (isPrismaKnownRequestError(error) && error.code === "P2025") {
-        logger.warn(
-          `[USER DOMAIN -  PrismaPostgresUserImplementation]: User not found!`
-        );
-        throw new Error("User not found!");
-      }
-
-      logger.error(
-        `[USER DOMAIN -  usersPrismaPostgresImpl]: Somenthing went wrong! Unhandled Error happend!`
-      );
-      logger.error(
-        `[USER DOMAIN -  PrismaPostgresUserImplementation]: ${error}`
-      );
-      return null;
-    }
-  }
-
-  async getUserByCellphoneNumber(
-    cellphoneNumber: string
-  ): Promise<UserReturn | null> {
-    logger.info(
-      `[USER DOMAIN -  usersPrismaPostgresImpl]: Server issued to get user by cellphone number`
-    );
-    logger.info(
-      `[USER DOMAIN -  usersPrismaPostgresImpl]: cellphone number received: ${cellphoneNumber}`
-    );
-    try {
-      const user = await this.client.findUniqueOrThrow({
-        where: {
-          cellphoneNumber,
-        },
-        include: {
-          companiesOwned: {
-            select: {
-              id: true,
-              companyName: true,
-            },
-          },
-          orders: {
-            select: {
-              id: true,
-            },
-          },
-        },
-        omit: {
-          createdAt: true,
-          deletedAt: true,
-          updatedAt: true,
-          passwordHash: true,
-        },
-      });
-      logger.info(
-        `[USER DOMAIN -  usersPrismaPostgresImpl]: User found! Decrypting and sending it`
-      );
-
-      return this.decryptUser(user) as UserReturn;
-    } catch (error) {
-      if (isPrismaKnownRequestError(error) && error.code === "P2025") {
-        logger.warn(
-          `[USER DOMAIN -  PrismaPostgresUserImplementation]: User not found!`
-        );
-        throw new Error("User not found!");
-      }
-
-      logger.error(
-        `[USER DOMAIN -  usersPrismaPostgresImpl]: Somenthing went wrong! Unhandled Error happend!`
-      );
-      logger.error(
-        `[USER DOMAIN -  PrismaPostgresUserImplementation]: ${error}`
-      );
-      return null;
-    }
+    return this.findUniqueUser({ id }, "ID");
   }
 
   async getUserByEmail(email: string): Promise<UserReturn | null> {
-    logger.info(
-      `[USER DOMAIN -  usersPrismaPostgresImpl]: Server issued to get user by cellphone email`
-    );
-    logger.info(
-      `[USER DOMAIN -  usersPrismaPostgresImpl]: cellphone number received: ${email}`
-    );
-    try {
-      const user = await this.client.findUniqueOrThrow({
-        where: {
-          email,
-        },
-        include: {
-          companiesOwned: {
-            select: {
-              id: true,
-              companyName: true,
-            },
-          },
-          orders: {
-            select: {
-              id: true,
-            },
-          },
-        },
-        omit: {
-          createdAt: true,
-          deletedAt: true,
-          updatedAt: true,
-          passwordHash: true,
-        },
-      });
-      logger.info(
-        `[USER DOMAIN -  usersPrismaPostgresImpl]: User found! Decrypting and sending it`
-      );
+    const encryptedEmail = encrypt(email);
+    return this.findUniqueUser({ email: encryptedEmail }, "Email");
+  }
 
-      return this.decryptUser(user) as UserReturn;
-    } catch (error) {
-      if (isPrismaKnownRequestError(error) && error.code === "P2025") {
-        logger.warn(
-          `[USER DOMAIN -  PrismaPostgresUserImplementation]: User not found!`
-        );
-        throw new Error("User not found!");
+  async getUserByCellphoneNumber(phone: string): Promise<UserReturn | null> {
+    const encryptedPhone = encrypt(phone);
+    return this.findUniqueUser(
+      { cellphoneNumber: encryptedPhone },
+      "Cellphone"
+    );
+  }
+
+  private async findUniqueUser(
+    where: Prisma.UserWhereUniqueInput,
+    searchType: string
+  ): Promise<UserReturn | null> {
+    try {
+      const user = await this.client.findUnique({
+        where,
+        ...userScope,
+      });
+
+      if (!user) {
+        logger.warn(`${this.LOG_CONTEXT} User not found by ${searchType}.`);
+        return null;
       }
 
+      return this.mapToDomain(user);
+    } catch (error) {
       logger.error(
-        `[USER DOMAIN -  usersPrismaPostgresImpl]: Somenthing went wrong! Unhandled Error happend!`
+        `${this.LOG_CONTEXT} Error finding by ${searchType}: ${(error as Error).message}`
       );
-      logger.error(
-        `[USER DOMAIN -  PrismaPostgresUserImplementation]: ${error}`
-      );
-      return null;
+      throw error;
     }
   }
 
   async softDeleteUser(id: string): Promise<Pick<User, "id">> {
-    logger.info(
-      `[USER DOMAIN -  usersPrismaPostgresImpl]: Server issued to soft delete user`
-    );
-    logger.info(
-      `[USER DOMAIN -  usersPrismaPostgresImpl]: User id received: ${id}`
-    );
-
-    try {
-      const softDeletedUser = await this.client.update({
-        where: {
-          id,
-        },
-        data: {
-          deletedAt: new Date(),
-        },
-      });
-
-      logger.info(
-        `[USER DOMAIN -  usersPrismaPostgresImpl]: User soft deleted!`
-      );
-
-      return softDeletedUser;
-    } catch (error) {
-      logger.error(
-        `[USER DOMAIN -  usersPrismaPostgresImpl]: Something went wrong. User not created`
-      );
-      logger.error(
-        `[USER DOMAIN -  PrismaPostgresUserImplementation]: ${error}`
-      );
-      throw error;
-    }
+    return this.client.update({
+      where: { id },
+      data: { deletedAt: new Date() },
+      select: { id: true },
+    });
   }
 
   async hardDeleteUser(id: string): Promise<Pick<User, "id">> {
-    logger.info(
-      `[USER DOMAIN -  usersPrismaPostgresImpl]: Server issued to hard delete user`
-    );
-    logger.info(
-      `[USER DOMAIN -  usersPrismaPostgresImpl]: User id received: ${id}`
-    );
-
-    try {
-      const deletedUser = await this.client.delete({
-        where: {
-          id,
-        },
-        select: {
-          id: true,
-        },
-      });
-      logger.info(
-        `[USER DOMAIN -  usersPrismaPostgresImpl]: User hard deleted!`
-      );
-
-      return deletedUser;
-    } catch (error) {
-      logger.error(
-        `[USER DOMAIN -  usersPrismaPostgresImpl]: Something went wrong. User not created`
-      );
-      logger.error(
-        `[USER DOMAIN -  PrismaPostgresUserImplementation]: ${error}`
-      );
-      throw error;
-    }
+    return this.client.delete({
+      where: { id },
+      select: { id: true },
+    });
   }
-  //Lidar com a criptografia dessa função e hahs do psw
+
   async updateUser(id: string, payload: UserUpdateData): Promise<UserReturn> {
-    logger.info(
-      `[USER DOMAIN -  usersPrismaPostgresImpl]: Server issued to update user`
-    );
-    logger.info(`[USER DOMAIN -  usersPrismaPostgresImpl]: User ID: ${id}`);
-    logger.info(
-      `[USER DOMAIN -  usersPrismaPostgresImpl]: Payload: ${payload}`
-    );
+    logger.info(`${this.LOG_CONTEXT} Updating user ID: ${id}`);
+
+    const { passwordHash, ...rest } = payload as any;
+
+    const dataToUpdate: Prisma.UserUpdateInput = {
+      ...rest,
+      ...(payload.email && { email: encrypt(payload.email) }),
+      ...(payload.cellphoneNumber && {
+        cellphoneNumber: encrypt(payload.cellphoneNumber),
+      }),
+      ...(passwordHash && { passwordHash: bcrypt.hashSync(passwordHash, 12) }),
+    };
 
     try {
-      const userExists = await this.client.findUniqueOrThrow({
-        where: {
-          id,
-        },
-      });
-
       const updatedUser = await this.client.update({
-        where: {
-          id,
-        },
-        data: {
-          ...payload,
-          passwordHash: payload.passwordHash
-            ? bcrypt.hashSync(payload.passwordHash, 12)
-            : userExists.passwordHash,
-          email: payload.email ? encrypt(payload.email) : userExists.email,
-          cellphoneNumber: payload.cellphoneNumber
-            ? encrypt(payload.cellphoneNumber)
-            : userExists.cellphoneNumber,
-        },
+        where: { id },
+        data: dataToUpdate,
+        ...userScope,
       });
 
-      logger.info(
-        `[USER DOMAIN -  usersPrismaPostgresImpl]: User updated! Sending it!`
-      );
-
-      return this.decryptUser(updatedUser) as unknown as UserReturn;
+      return this.mapToDomain(updatedUser);
     } catch (error) {
       if (isPrismaKnownRequestError(error) && error.code === "P2025") {
-        logger.warn(
-          `[USER DOMAIN -  PrismaPostgresUserImplementation]: User not found!`
-        );
         throw new Error("User not found!");
       }
-
-      logger.error(
-        `[USER DOMAIN -  usersPrismaPostgresImpl]: Somenthing went wrong! Unhandled Error happend!`
-      );
-      logger.error(
-        `[USER DOMAIN -  PrismaPostgresUserImplementation]: ${error}`
-      );
       throw error;
     }
   }
 
-  private decryptUser(user: User | UserReturn): User | UserReturn {
+  private mapToDomain(user: any): UserReturn {
+    // Decriptografia segura
     return {
       ...user,
       email: user.email ? decrypt(user.email) : null,

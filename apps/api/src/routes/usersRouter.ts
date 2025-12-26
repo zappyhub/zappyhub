@@ -20,7 +20,7 @@ usersRouter.post("/new", (req, res) => {
 });
 
 //Get all users
-usersRouter.get("/", (req, res) => {
+usersRouter.get("/", verifyJWT, (req, res) => {
   getAllUsersController.run(req, res);
 });
 

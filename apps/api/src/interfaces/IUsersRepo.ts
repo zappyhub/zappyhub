@@ -35,7 +35,10 @@ export type UserUpdateData = Partial<
 
 export interface IUsersRepo {
   create(payload: CreateUserPayload): Promise<Pick<User, "id"> | null>;
-  getAll(): Promise<User[]>;
+  getAll(params: { cursor?: string; limit?: number }): Promise<{
+    data: UserReturn[];
+    nextCursor: string | null;
+  }>;
   exists(id: string): Promise<Boolean>;
   getUserById(id: string): Promise<UserReturn | null>;
   getUserByEmail(email: string): Promise<UserReturn | null>;

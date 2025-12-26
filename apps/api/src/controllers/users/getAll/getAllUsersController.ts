@@ -5,9 +5,20 @@ import logger from "@/services/logger/logger";
 class GetAllUsersController {
   constructor(private useCase: GetAllUsersUseCase) {}
 
-  async run(_request: Request, response: Response) {
+  async run(request: Request, response: Response) {
+    const { cursor, limit } = request.query;
+
     try {
-      return response.send(await this.useCase.handle());
+      const parsedLimit = typeof limit === "string" ? Number(limit) : 10;
+
+      const safeLimit = !parsedLimit || parsedLimit <= 0 ? 10 : parsedLimit;
+
+      const result = await this.useCase.handle({
+        cursor: typeof cursor === "string" ? cursor : undefined,
+        limit: safeLimit,
+      });
+
+      return response.status(200).json(result);
     } catch (error) {
       logger.error(
         `[USER CONTROLLER -  getAllUsersController]: Something went wrong! An unhandled error happend!`
